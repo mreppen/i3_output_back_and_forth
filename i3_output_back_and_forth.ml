@@ -119,15 +119,22 @@ let main =
   Lwt_unix.on_signal Caml.Sys.sigusr2 (back_forth_with_restore conn state_ref lock_ref) |> ignore;
   let%lwt _ = I3ipc.subscribe conn [ I3ipc.Workspace ] in
   while%lwt true do
-    match%lwt I3ipc.next_event conn with
-    | Workspace ws_event ->
-      let%lwt () = while%lwt !lock_ref do Lwt_main.yield () done in
-      lock_ref := true;
-      let%lwt new_state = workspace_change handler_conn ws_event !state_ref in
-      Option.iter new_state ~f:(fun s -> state_ref := s);
-      lock_ref := false;
-      Lwt.return_unit
-    | _ -> Lwt.return_unit
+    try%lwt begin
+      match%lwt I3ipc.next_event conn with
+      | Workspace ws_event ->
+        let%lwt () = while%lwt !lock_ref do Lwt_main.yield () done in
+        lock_ref := true;
+        let%lwt new_state = workspace_change handler_conn ws_event !state_ref in
+        Option.iter new_state ~f:(fun s -> state_ref := s);
+        lock_ref := false;
+        Lwt.return_unit
+      | _ -> Lwt.return_unit
+    end
+    with I3ipc.Protocol_error pe as e -> begin
+      match pe with
+      | Bad_reply s -> Lwt_io.printf "Received a bad reply (likely not implemented in ocaml-i3ipc): %s\n" s
+      | _ -> raise e
+    end
   done
 
 let () = Lwt_main.run main
