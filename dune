@@ -1,4 +1,4 @@
 (executable
- (preprocess (pps lwt_ppx))
+ (preprocess (pps lwt_ppx ppx_deriving.show))
  (libraries base i3ipc stdio)
  (name i3_output_back_and_forth))
