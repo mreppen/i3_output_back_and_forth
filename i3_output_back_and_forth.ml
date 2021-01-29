@@ -103,7 +103,7 @@ let back_forth_with_restore conn state_ref lock_ref _signal =
     (let%lwt () =
       match restore, ws_if_restore with
       | true, Some ws_to_restore ->
-        let%lwt _ = I3ipc.command conn (Printf.sprintf {|workspace "%s""|} ws_to_restore) in
+        let%lwt _ = I3ipc.command conn (Printf.sprintf {|workspace "%s"|} ws_to_restore) in
         while%lwt not !lock_ref do Lwt_main.yield () done
       | _ -> Lwt.return_unit
     in
