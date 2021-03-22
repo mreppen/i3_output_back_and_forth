@@ -96,6 +96,13 @@ let back_forth_on_output conn state_ref _signal =
     I3ipc.command conn (Printf.sprintf {|workspace "%s"|} output_prev_ws)
     |> Lwt.ignore_result
 
+let waitlock ?(timeout = Float.infinity) lock_ref wait_cond =
+  let tic = Caml.Sys.time () in
+  while%lwt
+    not Bool.(!lock_ref = wait_cond)
+    && Float.(Caml.Sys.time () - tic < timeout)
+  do Lwt_main.yield () done
+
 let back_forth_with_restore conn state_ref lock_ref _signal =
     let restore = State.get_restore !state_ref in
     let alt = State.get_alt_ws !state_ref in
@@ -104,7 +111,7 @@ let back_forth_with_restore conn state_ref lock_ref _signal =
       match restore, ws_if_restore with
       | true, Some ws_to_restore ->
         let%lwt _ = I3ipc.command conn (Printf.sprintf {|workspace "%s"|} ws_to_restore) in
-        while%lwt not !lock_ref do Lwt_main.yield () done
+        waitlock ~timeout:2. lock_ref true
       | _ -> Lwt.return_unit
     in
     I3ipc.command conn (Printf.sprintf {|workspace "%s"|} alt))
@@ -122,7 +129,8 @@ let main =
     try%lwt begin
       match%lwt I3ipc.next_event conn with
       | Workspace ws_event ->
-        let%lwt () = while%lwt !lock_ref do Lwt_main.yield () done in
+        (* TODO: Figure out why lock_ref := false is occasionally not reached (about once per month, before adding timeout) *)
+        let%lwt () = waitlock ~timeout:2. lock_ref false in
         lock_ref := true;
         let%lwt new_state = workspace_change handler_conn ws_event !state_ref in
         Option.iter new_state ~f:(fun s -> state_ref := s);
