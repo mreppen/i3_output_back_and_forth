@@ -138,11 +138,13 @@ let main =
         Lwt.return_unit
       | _ -> Lwt.return_unit
     end
-    with I3ipc.Protocol_error pe as e -> begin
-      match pe with
+    with
+    | I3ipc.Protocol_error pe as e ->
+      begin match pe with
       | Bad_reply s -> Lwt_io.printf "Received a bad reply (likely not implemented in ocaml-i3ipc): %s\n" s
       | _ -> raise e
-    end
+      end
+    | e -> raise e
   done
 
 let () = Lwt_main.run main
