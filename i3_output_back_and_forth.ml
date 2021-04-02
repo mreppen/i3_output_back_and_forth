@@ -51,7 +51,6 @@ module State = struct
         in
         new_restore, new_alt_map
     in
-
     let new_state =
       { restore = new_restore
       ; latest_out = cur_out
@@ -104,18 +103,18 @@ let waitlock ?(timeout = Float.infinity) lock_ref wait_cond =
   do Lwt_main.yield () done
 
 let back_forth_with_restore conn state_ref lock_ref _signal =
-    let restore = State.get_restore !state_ref in
-    let alt = State.get_alt_ws !state_ref in
-    let ws_if_restore = State.current_out_alt_ws !state_ref in
-    (let%lwt () =
-      match restore, ws_if_restore with
-      | true, Some ws_to_restore ->
-        let%lwt _ = I3ipc.command conn (Printf.sprintf {|workspace "%s"|} ws_to_restore) in
-        waitlock ~timeout:2. lock_ref true
-      | _ -> Lwt.return_unit
-    in
-    I3ipc.command conn (Printf.sprintf {|workspace "%s"|} alt))
-    |> Lwt.ignore_result
+  let restore = State.get_restore !state_ref in
+  let alt = State.get_alt_ws !state_ref in
+  let ws_if_restore = State.current_out_alt_ws !state_ref in
+  (let%lwt () =
+    match restore, ws_if_restore with
+    | true, Some ws_to_restore ->
+      let%lwt _ = I3ipc.command conn (Printf.sprintf {|workspace "%s"|} ws_to_restore) in
+      waitlock ~timeout:2. lock_ref true
+    | _ -> Lwt.return_unit
+  in
+  I3ipc.command conn (Printf.sprintf {|workspace "%s"|} alt))
+  |> Lwt.ignore_result
 
 let main =
   let lock_ref = ref false in
