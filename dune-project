@@ -7,4 +7,4 @@
 (package
   (name i3_output_back_and_forth)
   (synopsis "Extra support for back_and_forth switching with multiple outputs")
-  (depends base i3ipc))
+  (depends base (i3ipc (>= 0.4))))
