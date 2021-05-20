@@ -100,7 +100,7 @@ let waitlock ?(timeout = Float.infinity) lock_ref wait_cond =
   while%lwt
     not Bool.(!lock_ref = wait_cond)
     && Float.(Caml.Sys.time () - tic < timeout)
-  do Lwt_main.yield () done
+  do Lwt.pause () done
 
 let back_forth_with_restore conn state_ref lock_ref _signal =
   let restore = State.get_restore !state_ref in
